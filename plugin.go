@@ -201,6 +201,8 @@ func (p *Plugin) connectWebSocket(myURL string) {
 			if len(urlMatch) > 1 {
 				mqttTopic += "_bg_url"
 				mqttMessage = urlMatch[1]
+			}else {
+				mqttTopic += "_text"
 			}
 		} else {
 			mqttTopic += "_text"
