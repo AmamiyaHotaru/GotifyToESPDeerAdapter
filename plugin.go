@@ -82,17 +82,16 @@ func (p *Plugin) Enable() error {
 		// 创建 URL
 		myurl := p.config.Server.HostServer + "/stream?token=" + p.config.Server.ClientToken
 		// 检查它是否有效
-
 		err := p.TestSocket(myurl)
-		if err != nil {
-			return errors.New("web 服务器 URL 无效，无效的客户端令牌或 URL")
+		// 如果有效 连接websocket和MQTT，如果无效 等待重连
+		if err == nil {
+			// 连接WebSocket
+			go p.connectWebSocket(myurl)
+			// 连接MQTT
+			go p.connectMQTT()
+		}else{
+			log.Println("websocket连接无效")
 		}
-		// 连接WebSocket
-		go p.connectWebSocket(myurl)
-
-		// 连接MQTT
-		go p.connectMQTT()
-
 		// 定时执行发送消息和检测连接的任务
 		go func() {
 			ticker := time.NewTicker(10 * time.Second)
@@ -102,13 +101,14 @@ func (p *Plugin) Enable() error {
 				case <-ticker.C:
 					// 每隔 10 秒发送一条消息以保持连接
 					p.sendMessageToWebSocket("THUMP!")
-
+	
 				case <-reconnectTicker.C:
 					// 定期检测连接状态并重新连接
 					p.checkAndReconnect()
 				}
 			}
 		}()
+
 	}
 	p.enabled = true
 	return nil
@@ -341,5 +341,5 @@ func NewGotifyPluginInstance(ctx plugin.UserContext) plugin.Plugin {
 }
 
 func main() {
-	panic("程序必须编译为 Go 插件")
+	panic("")
 }
