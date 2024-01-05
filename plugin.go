@@ -89,7 +89,7 @@ func (p *Plugin) Enable() error {
 			go p.connectWebSocket(myurl)
 			// 连接MQTT
 			go p.connectMQTT()
-		}else{
+		} else {
 			log.Println("websocket连接无效")
 		}
 		// 定时执行发送消息和检测连接的任务
@@ -101,7 +101,7 @@ func (p *Plugin) Enable() error {
 				case <-ticker.C:
 					// 每隔 10 秒发送一条消息以保持连接
 					p.sendMessageToWebSocket("THUMP!")
-	
+
 				case <-reconnectTicker.C:
 					// 定期检测连接状态并重新连接
 					p.checkAndReconnect()
@@ -201,7 +201,7 @@ func (p *Plugin) connectWebSocket(myURL string) {
 			if len(urlMatch) > 1 {
 				mqttTopic += "_bg_url"
 				mqttMessage = urlMatch[1]
-			}else {
+			} else {
 				mqttTopic += "_text"
 			}
 		} else {
@@ -231,11 +231,22 @@ func (p *Plugin) sendMessageToWebSocket(message string) {
 		return
 	}
 
-	err := p.websocketConn.WriteMessage(websocket.TextMessage, []byte(message))
-	if err != nil {
-		log.Printf("WebSocket 发送消息错误: %v", err)
+	// 重试次数
+	retries := 5
+	for i := 1; i <= retries; i++ {
+		err := p.websocketConn.WriteMessage(websocket.TextMessage, []byte(message))
+		if err != nil {
+			log.Printf("WebSocket 发送消息错误：%v", err)
+			// 重连
+			p.checkAndReconnect()
+			// 等待 10 秒后重试
+			time.Sleep(time.Second * 5)
+			continue
+		} else {
+			log.Printf("THUMP")
+		}
+		return
 	}
-	log.Printf("THUMP")
 
 }
 
